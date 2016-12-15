@@ -1,7 +1,10 @@
 % This is "sig-alternate.tex" V2.1 April 2013
 
 \documentclass{sig-alternate-05-2015}
-
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 
 \begin{document}
 
@@ -62,7 +65,26 @@ Here, we provide an end-to-end pipeline that efficiently computes and predicts o
 In this section, we go through the current state of the are used for each portion in our pipeline. Pipeline stages discussed include predictive algorithms, and tools for evaluating models built from these algorithms.
 
 \subsection{Algorithms}
-Current algorithms for predicting on regulatory genomic datasets include neural networks and SVM classification. These methods train on small portions of the genome. For example, a neural net implementation DeepBind subselects 10,000 sequences to predict protein binding sites. Similarily, Kernel SVM uses 10,000 sequence to learn a classifier. Both tools are intended to run on a single machine. \\
+Current algorithms for predicting on regulatory genomic datasets include neural networks and SVM classification. 
+\begin{table}[t]
+\centering
+\caption{Featurization Techniques}
+\label{my-label}
+\begin{tabular}{| L{2cm} | L{1.45cm} | L{2cm} | L{1.75cm} |}
+\hline
+Featurization Technique & Datasets & Description & Usage
+\\ \hline
+Read Wavelets \newline 
+(Raj et. al. 2015)           & DNA-seq, RNA-seq           & Iteratively quantifies read pileup                                 & Identification of genomic footprints \\ \hline 
+Kernel Approximation  
+(Morrow et. al. 2016) & Sequence, DNA-seq,  
+RNA-seq & Approximates kernel matrix through random features & Generic, Widely applicable                                      \\ \hline
+K-mer counts & Sequence & Counts the number of times each motif 
+appears in a sequence of length k & Identification 
+of motifs, quantification of sequence similarity \\ \hline
+\end{tabular}
+\end{table}
+These methods train on small portions of the genome. For example, a neural net implementation DeepBind subselects 10,000 sequences to predict protein binding sites. Similarily, Kernel SVM uses 10,000 sequence to learn a classifier. Both tools are intended to run on a single machine. \\
 
 \subsection{Evaluation Tools}
 Main interative tools for evaluating algorithms discussed above include visualization tools, such as University of Santa Cruz Genome Browser and Integrated Genomics Viewer (IGV). IGV is a desktop application that allows visualization of a wide variety of genomic datasets. IGV is used by clinicians and researchers to verify anomalies in their data and verify predictions to original raw genomic datasets. IGV does not support integrated visualization of predictive models, so users attempting to perform visual analysis of models using heterogeneous datasets must predict outside of the visualization tool.
@@ -71,20 +93,20 @@ Main interative tools for evaluating algorithms discussed above include visualiz
 In this section, we outline our design for an end-to-end machine learning pipeline on epigenetic datasets. Our implementation builds upon previously built distributed genomics tools such as ADAM, Mango and Endive, which are described below. Finally, we will demonstrate how these tools can be connected together, with our new machine learning tool, to create an end-to-end pipeline for machine learning tasks. \\
 
 \subsection{ADAM}
-ADAM is a framework for processing genomic data, and is built to run in the Spark ecosystem. ADAM uses distributed abstractions in Spark to batch process raw genomic datasets in parallel. More importantly, ADAM provides standardized schemas intended for various types of genomic datasets, presented in a narrow waist design that can be easily accessible by external applications. A figure of schema design is shown in Figure X. Important schemas that are used for epigenetic datasets include Alignment Record, Features, and Variant schemas. These schemas are demonstrated in Figure!\ref{fig:adam}. \\
+ADAM is a framework for processing genomic data, and is built to run in the Spark ecosystem. ADAM uses distributed abstractions in Spark to batch process raw genomic datasets in parallel. More importantly, ADAM provides standardized schemas intended for various types of genomic datasets, presented in a narrow waist design that can be easily accessible by external applications. A figure of schema design is shown in Figure X. Important schemas that are used for epigenetic datasets include Alignment Record, Features, and Variant schemas. These schemas are demonstrated in Figure~\ref{fig:adam}. \\
 
-% \begin{figure}
-%   \label{fig:adam}
-%   \includegraphics[width=0.5\textwidth]{figures/adamSchema.png}
-%   \caption{Example of AlignmentRecord schema used in
-%   Narrow waist design. Schema layer can be swapped in or
-%   Out for genomic workloads and sustituted in for legacy file formats.}
-% \end{figure}
+ \begin{figure}
+   \label{fig:adam}
+   \includegraphics[width=0.5\textwidth]{figures/adamSchema.png}
+   \caption{Example of AlignmentRecord schema used in
+   Narrow waist design. Schema layer can be swapped in or
+   Out for genomic workloads and substituted in for legacy file formats.}
+ \end{figure}
 
 \subsection{Mango}
 Mango is a distributed genome visualization browser that selectively materializes and organizes genomic data to provide fast in-memory queries.  Mango materializes data from persistent storage as the user requests different regions of the genome. This data is efficiently partitioned and organized in memory using a specialized RDD structure built upon interval trees. This interval based organizational structure supports ad hoc queries, filters, and joins across multiple files, enabling exploratory interaction with genomic data.  Mango is built on top of Spark and ADAM. A demonstration of Mango architecture can be seen in Figure X. Mango is implemented in three layers, namely, the cluster, server and client. In the cluster layer, Mango is built on ADAM and Spark, allowing users to perform and visualize fine grained queries on large genomic files. The server layer reduces and samples queries so that users can visualize their queries in an efficient and interpretable manner.
 
-%
+
 % \begin{figure}
 %   \label{fig:mango}
 %   \includegraphics[width=0.5\textwidth]{figures/mango.png}
@@ -96,46 +118,62 @@ Our machine learning tool, called Endive, provides core abstract stages for buil
 Preprocessing in Endive involves taking raw genomic data and parsing it into a vector of numeric values which can be directly read by a machine learning model. These preprocessing steps include formatting datasets as well as joining together heterogeneous datasets into one record based on coordinate location in the genome.
 Featurization steps in Endive involve taking preprocessed datasets created in the preprocessing stage and transforming these records to explicit features that can be trained and tested on. Table 1 contains examples of these featurization steps. These computed features can then be fed into a choice of solvers developed in Keystone ML to train these machine learning models (Sparks, 2015).
 
-
-
 \subsection{Machine Learning Pipeline for Epigenetic Workloads}
 For the entirety of this paper, we will focus on using kernel approximations described in Table 1 to predict protein binding sites for an example pipeline.
 
 \begin{figure}
   \label{fig:pipeline}
-  \includegraphics[width=0.5\textwidth]{figures/ourpipeline.png}
-  \caption{Pipeline overview. We eliminate preprocessing and file formatting steps.}
+  \includegraphics[width=0.5\textwidth]{figures/systemDiagram}
+  \caption{System Design overview.}
 \end{figure}
 
-
 \subsection{Interactive Prediction of Binding Sites}
-Initially, direct prediction of binding sites was not in interactive time (500ms) (cite). To reduce latency, we took advantage that regulatory regions are fairly sparce, touching less than 0.01\% of the entire genome. To take advantage of this sparcity, we iteratively analyzed the prediction of large potential regulatory regions. We normalized predictions based on the region size. If this prediction scored higher than a given threshold, we iteratively re-predict on smaller regions within the larger regions. A schematic of this approach is seen in Figure~\ref{fig:iterations}.
+Initially, direct prediction of binding sites was not in interactive time (6s). To reduce latency, we took advantage that regulatory regions are fairly sparse, occurring in less than 0.01\% of the entire genome. To take advantage of this sparsity, we iteratively analyzed the prediction of large potential regulatory regions with a pre-fetching technique. If this prediction scored higher than a given threshold, we cut the sequence into two equal parts iteratively pre-fetched the sequence cut in half, similar to a binary search implementation. This binary pre-fetching implementation  allowed us to significantly reduce average prediction time of a servable chunk. A schematic of this approach is seen in Figure~\ref{fig:iterations}.
 
-\begin{figure}
+\begin{figure}[b]
   \label{fig:iterations}
   \includegraphics[width=0.5\textwidth]{figures/iterations.png}
-  \caption{}
+  \caption{Binary Pre-fetching}
 \end{figure}
 
 \section{Experiments}
 
-For preliminary results, we train a model predicting transcription factor binding sites using the kernel approximation featurization method described in Table 1 from ENCODE datasets using DNA sequence. This model was solved using Keystone ML’s Weighted Least Squares estimator, which accounts for large class imbalance of positive binding sites across the genome. This model was trained on 200,000,000 regions of the genome and generated a 4 MB model to be tested on new datasets. This model was loaded into the Mango genome browser and was used to interactively predict on DNA reference sequences as the user scrolled to new regions of the browser.
+For preliminary results, we train a model predicting transcription factor binding sites using the kernel approximation featurization method described in Table 1 from ENCODE datasets using DNA sequence.
 
 
-\subsection{Local Comparison}
-For a straw man comparison, we took the state of the art pipeline used to train and analyze protein binding sites on a local computer. We trained a model on 15,000 DNA sequences to predict the location of binding sites. These models were trained and tested on the EGR1 transcription factor. The strawman pipeline includes training a model with DeepBind, a neural net implementation to predict binding sites from DNA sequences [cite]. To visualize results, we used IGV, a local genome browser.
+\subsection{Fast Prediction with Mango}
+For a straw man comparison, we took the state of the art pipeline used to train and analyze protein binding sites on a local computer. We trained a model on 15,000 DNA sequences to predict the location of binding sites of the EGR1 transcription factor, then visualizing the results in a genome browser, IGV. The state of the art in transcription factor binding is DeepBind, and uses a neural net. Previously, we demonstrated the improved accuracy and training time of the Convolutional Kitchen Sink over DeepBind's neural net implementation (Morrow et. al. 2016). The results of the runtime experiment for serving the model are displayed in Figure~\ref{fig:igvcomp}. A significant difference between Model Serving with Mango and using IGV is that with Mango, we are able to use Servable Chunks, which are defined in the user space. With IGV, there is no way to perform this prediction without completing the entire prediction over the whole search space.
 
+\begin{figure}
+  \label{fig:igvcomp}
+  \includegraphics[width=0.5\textwidth]{figures/mangoVsIGV.png}
+  \caption{Runtime comparison with IGV and DeepBind}
+\end{figure}
 
-Our pipeline trains a model on 15,000 sequences and uses Mango to analyze results. Because the models were too expensive to train locally, we train both straw man and our models on one machine with 24 Xeon processors, and 256 GB of ram and 1 Nvidia Tesla K20c GPU.
+Initially, our results were on the order of 6 seconds, which is sub-optimal for an application with a user interface. The results in Figure \# show a difference between our implementation with and without the binary pre-fetching approach. Binary pre-fetching allows us to rule out a significant part of the Servable Chunk. 
 
-DEVIN TODO
+\subsection{Whole Genome Model Serving}
+This model was solved using Keystone ML's Weighted Least Squares estimator, which accounts for large class imbalance of positive binding sites across the genome. This model was trained on 200,000,000 regions of the genome and generated a 4 MB model to be tested on new datasets. This model was loaded into the Mango genome browser and was used to interactively predict on DNA reference sequences as the user scrolled to new regions of the browser.
 
-\subsection{Scalable Pipeline for Model Analysis}
-For our second experiment, we trained on the full genome, or 200,000,000 sequences to predict binding sites for EGR1.
-ALYSSA TODO
+\begin{table}[b]
+\centering
+\caption{Predicting on Entire Genome}
+\label{tableresults}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Mean} & \textbf{Min} & \textbf{Max} \\ \hline
+402.31ms      & 3.09ms       & 3.98s       \\ \hline
+\end{tabular}
+\end{table}
+
+Table 2 shows the results of this experiment. Even on a significantly larger model, we averaged prediction times in the 400ms range. This is close to the level required for interactive applications, particularly applications with a user interface.
 
 \section{Conclusion}
-DEVIN TODO
+There is a need in the scientific community for a tool that accepts user data uploaded from a browser. Genomic data presents new challenges to model serving. Currently, there is no infrastructure in place to allow users to upload and interactively predict on their data. Because of the scale, interactivity is a difficult challenge. In this paper, we describe a novel approach to model serving for extremely large datasets. The process involves using Servable Chunks defined in user space to cut down on network and model prediction overheads. Additionally, we describe a binary pre-fetching approach to achieve close-to-interactive prediction times. Further optimization can be achieved in many parts of the pipeline. We are first interested in taking further advantage of sparsity of the positive predictions. We can do this in a couple of obvious ways. First, we can build a Hidden Markov Model (HMM) on the sequences and uploaded data, allowing us further optimization on the basis of where they will likely look for results next. With this information, we can further pre-fetch results to get them ready for the user's change in prediction window. Second, we can take a sampling method that does not examine the entire sequence. For this sampling method, we do not need to sample from a positive prediction to know that there is a positive prediction nearby. By using a sampling method, we can cut down on the size of the data being predicted and significantly reduce the prediction time. A combination of these two techniques with the Binary Pre-fetching is likely to improve the runtime of predictions to interactive levels.
+
+There are several other future components we would like to add to this model serving pipeline. Another important aspect we would like to incorporate into our approach is a dynamic update component. When users upload their sequences, we want to improve our model with their data. Additionally, we would like to share the computation with users. If we can share some of the computation with users, we can significantly reduce the amount of network traffic and computation load on our server. There are several challenges with this model. First, users will have access to the prediction model, which can be problematic for security. In the case that we use private data for predicting these sequences, we do not want users to be able learn the original training data composition based on our model. Before we can split computation, we need a way to obscure the training data so that our private training data is not compromised.
+
+In order to make this a usable application, we will need to develop the model serving application into a full pipeline. Specifically, we will need to include preprocessing for the data being uploaded so that it is always in the correct format. The field of genomics suffers from an incredibly wide range of formats and file types. This presents challenges when building tools; each format has nuances that require unique methods to handle them. Additionally, users should be able to download the full prediction over their entire sequence once it's complete.
 
 \bibliographystyle{abbrv}
 \bibliography{sigproc}  % sigproc.bib is the name of the Bibliography in this case
