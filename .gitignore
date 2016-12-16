@@ -3,4 +3,5 @@
 *.fdb_latexmk
 *.aux
 *.log
+paper.pdf
 *.fls
