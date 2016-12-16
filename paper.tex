@@ -18,7 +18,7 @@
 %\setcopyright{cagovmixed}
 
 
-\title{TITLE}
+\title{Model Serving for Transcription Factor Binding Site Prediction}
 
 
 \numberofauthors{4}
@@ -39,7 +39,7 @@ Devin Petersohn \\
 
 \maketitle
 \begin{abstract}
-Current pipelines for training machine learning models on genomic and epigenetic datasets lack resources to scale to current datasets sizes. Furthermore, pipelines for testing and evaluating these machine learning models are segmented, as they require users to separately test pipelines and evaluate their methods using disjunct software. In this paper we survey current workflows for training, testing and evaluating genomic machine learning models and provide an alternative solution to connecting the dots between these processes. More specifically, present a complete fast and interactive pipeline that allows users to save prebuilt models and evaluate these models in a visual environment with low latency.
+Current pipelines for training machine learning models on genomic and epigenetic datasets lack resources to scale to current dataset sizes. Furthermore, pipelines for testing and evaluating these machine learning models are segmented, as they require users to separately test pipelines and evaluate their methods using disjunct software. In this paper we survey current workflows for training, testing and evaluating genomic machine learning models and provide an alternative solution to connecting the dots between these processes. More specifically, we present a complete fast and interactive pipeline that allows users to save prebuilt models and evaluate these models in a visual environment with low latency.
 \end{abstract}
 
 
@@ -51,18 +51,20 @@ Current pipelines for training machine learning models on genomic and epigenetic
 Regulatory genomics is a field of research that works to connect the function of DNA sequence, DNA interacting proteins and cell environment with gene expression. Understanding and predicting regulatory function is important, as it allows clinicians to predict the effect of an individual's genetic variants on their health and well being. Currently, there exist many different computational methods for prediction of regulatory function, including convolutional neural networks and SVM classification problems (Alipanahi et. al. 2014, Kelley et. al. 2016).  Datasets used to predict regulatory function are massive, reaching 15 TB in the ENCODE consortium (cite). However, these datasets are noisy, and thus analysis of regulatory predictions often require a human in the loop to visually interpret predictions against ground truth datasets produced in datasets such as ENCODE. \\
 
 
-Current pipelines for training and analyzing regulatory genomic models include a segmented group of steps that are exclusive and require preprocessing between each stage. For example, a state of the art pipeline involves a local algorithm, such as a kernel method or neural network, built for a single machine. Because these methods are not built to scale past a single machine, users must first subselect regions of the genome to train on. A user would then subselect certain areas of the genome, and predict on these regions. Once the user has predicted on these regions, the user would then load these regions into a single node visualization tool, such as IGV, and repeat this preprocessing step to validate their model. A demonstration can be shown in Figure~\ref{fig:strawmanPipeline}. \\
+Current pipelines for training and analyzing regulatory genomic models include a segmented group of steps that are exclusive and require preprocessing between each stage. For example, the state-of-the-art pipeline involves executing a locally run algorithm, such as a kernel method or neural network, built for a single machine. Users who are interested in predicting on a particular sequence face multiple challenges. Because the state-of-the-art methods are not built to scale past a single machine, users must first sub-select a number of regions of the genome to train on specific to their hardware capabilities. After sub-selecting the data and training on that data, the user would then load these regions into a single node visualization tool, such as IGV, and repeat the preprocessing step to validate their model. A demonstration of the workflow pipeline required using currently available tools can be shown in Figure~\ref{fig:strawmanPipeline}.
 
-\begin{figure}
+\begin{figure}[b]
   \label{fig:strawmanPipeline}
   \includegraphics[width=0.5\textwidth]{figures/strawman.png}
   \caption{Stawman pipeline for training and evaluating model.}
 \end{figure}
 
-Here, we provide an end-to-end pipeline that efficiently computes and predicts on regulatory genomics while maintaining seamless integration between processing steps. In our previous work, we use a scalable and parallel algorithm to efficiently compute protein binding sites without the use of specialized hardware or $O(n^2)$ complexity (cite). Here, we utilize this algorithm to predict from regulatory datasets, and provide a full analysis pipeline to analyze results. Our pipeline allows users to interactively predict on regions of the genome, removing file preprocessing steps in the state of the art analysis pipelines. We compare our pipeline to the current state of the art approaches intended for a local machine, and then analyze pipeline latency at scale.
+Currently, there is no infrastructure available for users to upload and predict on their sequences while receiving real time model serving. In practice, this infrastructure is not available, due in part to the difficulty in serving models at a large scale. Genomic data typically ranges on the order of 100's of MB to 10's of GB of data. The models are typically built with 10's of GB to 100's of GB of data, creating a unique challenge when trying to achieve interactive model serving speeds. 
+
+In the paper, we describe an end-to-end pipeline that efficiently computes and predicts on user provided sequences while maintaining seamless integration between processing steps. In our previous work, we use a scalable and parallel algorithm to efficiently compute protein binding sites without the use of specialized hardware (Morrow et. al. 2016). Here, we utilize this algorithm to predict from regulatory datasets, and provide a full analysis pipeline to visualize results. This novel pipeline allows users to interactively predict on regions of interest in a query genome. We compare our pipeline to the current state-of-the-art approaches on a single node, and then analyze pipeline latency at scale. \\
 
 \section{Background}
-In this section, we go through the current state of the are used for each portion in our pipeline. Pipeline stages discussed include predictive algorithms, and tools for evaluating models built from these algorithms.
+Existing infrastructure for model prediction and serving is not built for scalable computing environments. In this section, we describe the current state-of-the-art pipeline components. 
 
 \subsection{Algorithms}
 Current algorithms for predicting on regulatory genomic datasets include neural networks and SVM classification. 
@@ -84,10 +86,10 @@ appears in a sequence of length k & Identification
 of motifs, quantification of sequence similarity \\ \hline
 \end{tabular}
 \end{table}
-These methods train on small portions of the genome. For example, a neural net implementation DeepBind subselects 10,000 sequences to predict protein binding sites. Similarily, Kernel SVM uses 10,000 sequence to learn a classifier. Both tools are intended to run on a single machine. \\
+These methods train on small portions of the genome. For example, a neural net implementation DeepBind sub-selects 10,000 sequences to predict protein binding sites. Similarly, Kernel SVM uses 10,000 sequence to learn a classifier. Both tools are intended to run on a single machine. \\
 
 \subsection{Evaluation Tools}
-Main interative tools for evaluating algorithms discussed above include visualization tools, such as University of Santa Cruz Genome Browser and Integrated Genomics Viewer (IGV). IGV is a desktop application that allows visualization of a wide variety of genomic datasets. IGV is used by clinicians and researchers to verify anomalies in their data and verify predictions to original raw genomic datasets. IGV does not support integrated visualization of predictive models, so users attempting to perform visual analysis of models using heterogeneous datasets must predict outside of the visualization tool.
+Main interactive tools for evaluating algorithms discussed above include visualization tools, such as University of Santa Cruz Genome Browser and Integrated Genomics Viewer (IGV). IGV is a desktop application that allows visualization of a wide variety of genomic datasets. IGV is used by clinicians and researchers to verify anomalies in their data and verify predictions to original raw genomic datasets. IGV does not support integrated visualization of predictive models, so users attempting to perform visual analysis of models using heterogeneous datasets must predict outside of the visualization tool.
 
 \section{Architecture}
 In this section, we outline our design for an end-to-end machine learning pipeline on epigenetic datasets. Our implementation builds upon previously built distributed genomics tools such as ADAM, Mango and Endive, which are described below. Finally, we will demonstrate how these tools can be connected together, with our new machine learning tool, to create an end-to-end pipeline for machine learning tasks. \\
